@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live & Affiliates — Control Room</title>
+<link rel="stylesheet" href="styles.css">
+<!-- Optional: if this intranet has outbound internet access, uncomment below to load the
+     intended display fonts (Space Grotesk / Inter / JetBrains Mono). Without it, the app
+     falls back to system sans-serif/monospace fonts and still looks fine. -->
+<!--
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+-->
+<!-- Chart.js loaded from cdnjs (previously vendored locally for intranet/offline use;
+     since this deploy already depends on internet access for the live Google Sheets
+     data + PapaParse, we load it from CDN too to keep the repo lean). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+
+<header>
+  <div>
+    <div class="eyebrow"><span class="live-dot"></span> SAMSUNG LATAM · E-COMMERCE</div>
+    <h1>Live &amp; Affiliates — Control Room</h1>
+    <div class="subtitle">Performance consolidada de Live Commerce e Programas de Afiliados por subsidiária</div>
+  </div>
+  <div class="updated">
+    <div id="dataStatus">Carregando dados…</div>
+    <button class="btn-ghost" id="refreshBtn" style="margin-top:8px;">↻ Atualizar agora</button>
+  </div>
+</header>
+
+<div class="view-switch" id="viewSwitch">
+  <div class="view-tab active" data-view="live">
+    <div class="vt-icon">▶</div>
+    <div>
+      <div class="vt-label">Live</div>
+      <div class="vt-sub">receita, metas, views</div>
+    </div>
+  </div>
+  <div class="view-tab" data-view="affiliate">
+    <div class="vt-icon">%</div>
+    <div>
+      <div class="vt-label">Afiliados</div>
+      <div class="vt-sub">receita, parceiros</div>
+    </div>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-group">
+    <div class="filter-label">Subsidiárias</div>
+    <div class="pills" id="subPills"></div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Ano</div>
+    <div class="seg" id="yearSeg"></div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Trimestre <span style="opacity:.6">(KPIs &amp; tabela)</span></div>
+    <div class="seg" id="quarterSeg"></div>
+  </div>
+  <div class="filter-actions">
+    <button class="btn-ghost" id="resetBtn">Limpar filtros</button>
+  </div>
+</div>
+
+<div class="kpi-row" id="kpiRow"></div>
+
+<!-- ==================== LIVE VIEW ==================== -->
+<div class="view-section active" id="viewLive">
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Evolução Mensal — Receita Live vs Meta</div>
+        <div class="panel-note">Tendência completa do(s) ano(s) selecionado(s), independente do trimestre</div>
+      </div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--live)"></span>Receita</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#8b96ac"></span>Meta</div>
+      </div>
+    </div>
+    <div class="chart-wrap tall"><canvas id="liveMonthlyChart"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Live: Receita vs Meta</div>
+          <div class="panel-note">Por evento, no período filtrado</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="liveTargetChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Comparativo Trimestral por Ano</div>
+          <div class="panel-note">Receita Live — Q1 a Q4, 2025 vs 2026</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="liveQuarterYearChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Views Semanais</div>
+        <div class="panel-note">Total de views por semana, tendência completa do(s) ano(s) selecionado(s)</div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="weeklyViewsChart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Lives — Detalhe</div>
+        <div class="panel-note" id="liveTableCount"></div>
+      </div>
+      <input class="search-input" id="liveSearch" placeholder="Buscar live...">
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="sub">Sub</th>
+            <th data-key="name">Live</th>
+            <th data-key="date">Data</th>
+            <th data-key="week">Week</th>
+            <th data-key="quarter">Q</th>
+            <th data-key="views">Views</th>
+            <th data-key="revenue">Receita (USD)</th>
+            <th data-key="target">Meta (USD)</th>
+            <th data-key="attain">Atingimento</th>
+          </tr>
+        </thead>
+        <tbody id="liveTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== AFFILIATE VIEW ==================== -->
+<div class="view-section" id="viewAffiliate">
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Evolução Mensal — Receita Afiliados</div>
+        <div class="panel-note">Tendência completa do(s) ano(s) selecionado(s), independente do trimestre</div>
+      </div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--aff)"></span>Receita aprovada</div>
+      </div>
+    </div>
+    <div class="chart-wrap tall"><canvas id="affMonthlyChart"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Comparativo Trimestral por Ano</div>
+          <div class="panel-note">Receita Afiliados — Q1 a Q4, 2025 vs 2026</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="affQuarterYearChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Top 10 Parceiros de Afiliados</div>
+          <div class="panel-note">Por receita aprovada, no período filtrado</div>
+        </div>
+      </div>
+      <div class="rank-list" id="topPartners"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>Fontes: planilhas "Live and Affiliates" por subsidiária (SEM, SELA, SAMCOL, SEASA, SEPR, SECH, SEDA)</div>
+  <div>Para atualizar: envie as planilhas revisadas no chat</div>
+</footer>
+
+
+<script src="app.js"></script>
+</body>
+</html>
