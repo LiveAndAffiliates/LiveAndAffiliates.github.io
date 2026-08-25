@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,16 +20,66 @@
 </head>
 <body>
 
+<!-- ==================== LOGIN GATE ====================
+     Lightweight client-side password gate. This deters casual/unauthorized
+     access to the link, but it is NOT real security: the password lives in
+     this page's source code, and the underlying Google Sheets data endpoint
+     that app.js fetches from remains independently reachable regardless of
+     this gate. If real access control is required, this needs to move to a
+     platform with server-side auth (e.g. Cloudflare Access) in front of a
+     custom domain. -->
+<div id="loginGate">
+  <div class="login-card">
+    <div class="eyebrow"><span class="live-dot"></span> LIVE COMMERCE · AFFILIATE PROGRAMS</div>
+    <h1 style="font-size:22px;margin:6px 0 18px;">Live &amp; Affiliates — Control Room</h1>
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
+    <button class="btn-ghost" id="loginSubmit" style="width:100%;margin-top:10px;">Enter</button>
+    <div id="loginError">Incorrect password.</div>
+  </div>
+</div>
+<script>
+(function(){
+  var PASSWORD = "2307";
+  var body = document.body;
+  var gate = document.getElementById('loginGate');
+  var input = document.getElementById('loginPassword');
+  var err = document.getElementById('loginError');
+
+  function unlock(){
+    body.classList.add('unlocked');
+    gate.style.display = 'none';
+  }
+
+  if (sessionStorage.getItem('laa_auth') === 'ok') {
+    unlock();
+  } else {
+    input.focus();
+  }
+
+  function tryLogin(){
+    if (input.value === PASSWORD) {
+      sessionStorage.setItem('laa_auth', 'ok');
+      err.style.display = 'none';
+      unlock();
+    } else {
+      err.style.display = 'block';
+    }
+  }
+
+  document.getElementById('loginSubmit').addEventListener('click', tryLogin);
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
+})();
+</script>
 
 <header>
   <div>
-    <div class="eyebrow"><span class="live-dot"></span> SAMSUNG LATAM · E-COMMERCE</div>
+    <div class="eyebrow"><span class="live-dot"></span> LIVE COMMERCE · AFFILIATE PROGRAMS</div>
     <h1>Live &amp; Affiliates — Control Room</h1>
-    <div class="subtitle">Performance consolidada de Live Commerce e Programas de Afiliados por subsidiária</div>
+    <div class="subtitle">Consolidated performance of Live Commerce and Affiliate Programs by subsidiary</div>
   </div>
   <div class="updated">
-    <div id="dataStatus">Carregando dados…</div>
-    <button class="btn-ghost" id="refreshBtn" style="margin-top:8px;">↻ Atualizar agora</button>
+    <div id="dataStatus">Loading data…</div>
+    <button class="btn-ghost" id="refreshBtn" style="margin-top:8px;">↻ Refresh now</button>
   </div>
 </header>
 
@@ -38,33 +88,33 @@
     <div class="vt-icon">▶</div>
     <div>
       <div class="vt-label">Live</div>
-      <div class="vt-sub">receita, metas, views</div>
+      <div class="vt-sub">revenue, targets, views</div>
     </div>
   </div>
   <div class="view-tab" data-view="affiliate">
     <div class="vt-icon">%</div>
     <div>
-      <div class="vt-label">Afiliados</div>
-      <div class="vt-sub">receita, parceiros</div>
+      <div class="vt-label">Affiliates</div>
+      <div class="vt-sub">revenue, partners</div>
     </div>
   </div>
 </div>
 
 <div class="filters">
   <div class="filter-group">
-    <div class="filter-label">Subsidiárias</div>
+    <div class="filter-label">Subsidiaries</div>
     <div class="pills" id="subPills"></div>
   </div>
   <div class="filter-group">
-    <div class="filter-label">Ano</div>
+    <div class="filter-label">Year</div>
     <div class="seg" id="yearSeg"></div>
   </div>
   <div class="filter-group">
-    <div class="filter-label">Trimestre <span style="opacity:.6">(KPIs &amp; tabela)</span></div>
+    <div class="filter-label">Quarter <span style="opacity:.6">(KPIs &amp; table)</span></div>
     <div class="seg" id="quarterSeg"></div>
   </div>
   <div class="filter-actions">
-    <button class="btn-ghost" id="resetBtn">Limpar filtros</button>
+    <button class="btn-ghost" id="resetBtn">Clear filters</button>
   </div>
 </div>
 
@@ -76,12 +126,12 @@
   <div class="panel">
     <div class="panel-header">
       <div>
-        <div class="panel-title">Evolução Mensal — Receita Live vs Meta</div>
-        <div class="panel-note">Tendência completa do(s) ano(s) selecionado(s), independente do trimestre</div>
+        <div class="panel-title">Monthly Trend — Live Revenue vs Target</div>
+        <div class="panel-note">Full trend for the selected year(s), regardless of quarter</div>
       </div>
       <div class="legend-row">
-        <div class="legend-item"><span class="legend-swatch" style="background:var(--live)"></span>Receita</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#8b96ac"></span>Meta</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--live)"></span>Revenue</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#8b96ac"></span>Target</div>
       </div>
     </div>
     <div class="chart-wrap tall"><canvas id="liveMonthlyChart"></canvas></div>
@@ -91,8 +141,8 @@
     <div class="panel">
       <div class="panel-header">
         <div>
-          <div class="panel-title">Live: Receita vs Meta</div>
-          <div class="panel-note">Por evento, no período filtrado</div>
+          <div class="panel-title">Live: Revenue vs Target</div>
+          <div class="panel-note">Per event, in the filtered period</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="liveTargetChart"></canvas></div>
@@ -100,8 +150,8 @@
     <div class="panel">
       <div class="panel-header">
         <div>
-          <div class="panel-title">Comparativo Trimestral por Ano</div>
-          <div class="panel-note">Receita Live — Q1 a Q4, 2025 vs 2026</div>
+          <div class="panel-title">Quarterly Comparison by Year</div>
+          <div class="panel-note">Live Revenue — Q1 to Q4, 2025 vs 2026</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="liveQuarterYearChart"></canvas></div>
@@ -111,8 +161,8 @@
   <div class="panel">
     <div class="panel-header">
       <div>
-        <div class="panel-title">Views Semanais</div>
-        <div class="panel-note">Total de views por semana, tendência completa do(s) ano(s) selecionado(s)</div>
+        <div class="panel-title">Weekly Views</div>
+        <div class="panel-note">Total views per week, full trend for the selected year(s)</div>
       </div>
     </div>
     <div class="chart-wrap"><canvas id="weeklyViewsChart"></canvas></div>
@@ -121,10 +171,10 @@
   <div class="panel">
     <div class="panel-header">
       <div>
-        <div class="panel-title">Lives — Detalhe</div>
+        <div class="panel-title">Lives — Detail</div>
         <div class="panel-note" id="liveTableCount"></div>
       </div>
-      <input class="search-input" id="liveSearch" placeholder="Buscar live...">
+      <input class="search-input" id="liveSearch" placeholder="Search live...">
     </div>
     <div class="table-scroll">
       <table>
@@ -132,13 +182,13 @@
           <tr>
             <th data-key="sub">Sub</th>
             <th data-key="name">Live</th>
-            <th data-key="date">Data</th>
+            <th data-key="date">Date</th>
             <th data-key="week">Week</th>
             <th data-key="quarter">Q</th>
             <th data-key="views">Views</th>
-            <th data-key="revenue">Receita (USD)</th>
-            <th data-key="target">Meta (USD)</th>
-            <th data-key="attain">Atingimento</th>
+            <th data-key="revenue">Revenue (USD)</th>
+            <th data-key="target">Target (USD)</th>
+            <th data-key="attain">Attainment</th>
           </tr>
         </thead>
         <tbody id="liveTableBody"></tbody>
@@ -154,11 +204,11 @@
   <div class="panel">
     <div class="panel-header">
       <div>
-        <div class="panel-title">Evolução Mensal — Receita Afiliados</div>
-        <div class="panel-note">Tendência completa do(s) ano(s) selecionado(s), independente do trimestre</div>
+        <div class="panel-title">Monthly Trend — Affiliate Revenue</div>
+        <div class="panel-note">Full trend for the selected year(s), regardless of quarter</div>
       </div>
       <div class="legend-row">
-        <div class="legend-item"><span class="legend-swatch" style="background:var(--aff)"></span>Receita aprovada</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--aff)"></span>Approved revenue</div>
       </div>
     </div>
     <div class="chart-wrap tall"><canvas id="affMonthlyChart"></canvas></div>
@@ -168,8 +218,8 @@
     <div class="panel">
       <div class="panel-header">
         <div>
-          <div class="panel-title">Comparativo Trimestral por Ano</div>
-          <div class="panel-note">Receita Afiliados — Q1 a Q4, 2025 vs 2026</div>
+          <div class="panel-title">Quarterly Comparison by Year</div>
+          <div class="panel-note">Affiliate Revenue — Q1 to Q4, 2025 vs 2026</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="affQuarterYearChart"></canvas></div>
@@ -177,8 +227,8 @@
     <div class="panel">
       <div class="panel-header">
         <div>
-          <div class="panel-title">Top 10 Parceiros de Afiliados</div>
-          <div class="panel-note">Por receita aprovada, no período filtrado</div>
+          <div class="panel-title">Top 10 Affiliate Partners</div>
+          <div class="panel-note">By approved revenue, in the filtered period</div>
         </div>
       </div>
       <div class="rank-list" id="topPartners"></div>
@@ -188,8 +238,8 @@
 </div>
 
 <footer>
-  <div>Fontes: planilhas "Live and Affiliates" por subsidiária (SEM, SELA, SAMCOL, SEASA, SEPR, SECH, SEDA)</div>
-  <div></div>
+  <div>Sources: "Live and Affiliates" spreadsheets per subsidiary (SEM, SELA, SAMCOL, SEASA, SEPR, SECH, SEDA)</div>
+  <div>Automatic update: data comes from the consolidated Google Sheets spreadsheet on every page load</div>
 </footer>
 
 
