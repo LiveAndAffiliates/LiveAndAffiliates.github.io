@@ -1,7 +1,7 @@
 if (typeof Chart === 'undefined') {
   document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#e9edf6;font-family:sans-serif">' +
-    '<h2>Não foi possível carregar a biblioteca de gráficos (Chart.js via CDN).</h2>' +
-    '<p style="color:#8b96ac">Verifique sua conexão ou tente recarregar a página.</p></div>';
+    '<h2>Could not load the charting library (Chart.js via CDN).</h2>' +
+    '<p style="color:#8b96ac">Check your connection or try reloading the page.</p></div>';
   throw new Error('Chart.js failed to load');
 }
 
@@ -79,7 +79,7 @@ function buildSubPills(){
 function buildYearSeg(){
   const el = document.getElementById('yearSeg');
   el.innerHTML = '';
-  const opts = [["all","Todos"], ["2025","2025"], ["2026","2026"]];
+  const opts = [["all","All"], ["2025","2025"], ["2026","2026"]];
   opts.forEach(([val,label]) => {
     const b = document.createElement('button');
     b.textContent = label;
@@ -97,7 +97,7 @@ function buildYearSeg(){
 function buildQuarterSeg(){
   const el = document.getElementById('quarterSeg');
   el.innerHTML = '';
-  const opts = [["all","Ano todo"],["Q1","Q1"],["Q2","Q2"],["Q3","Q3"],["Q4","Q4"]];
+  const opts = [["all","Full Year"],["Q1","Q1"],["Q2","Q2"],["Q3","Q3"],["Q4","Q4"]];
   opts.forEach(([val,label]) => {
     const b = document.createElement('button');
     b.textContent = label;
@@ -174,12 +174,12 @@ function renderLiveKPIs(){
   const attain = liveTarget > 0 ? (liveRev/liveTarget*100) : 0;
 
   const cards = [
-    {label:"Receita Live", value: fmtUSD(liveRev), sub: fmtFull(liveRev), accent:"var(--live)"},
-    {label:"Meta Live", value: fmtUSD(liveTarget), sub: fmtFull(liveTarget), accent:"#8b96ac"},
-    {label:"Atingimento de Meta", value: attain.toFixed(1)+"%", sub: attain>=100 ? "acima da meta" : "abaixo da meta", accent: attain>=100?"var(--good)":"var(--danger)", subClass: attain>=100?"good":"bad"},
-    {label:"Total de Views", value: fmtNum(views), sub: liveF.length + " lives", accent:"#8b96ac"},
-    {label:"Lives no período", value: liveF.length, sub: "eventos registrados", accent:"var(--live)"},
-    {label:"Receita média / live", value: liveF.length ? fmtUSD(liveRev/liveF.length) : "—", sub: "por evento", accent:"var(--live)"},
+    {label:"Live Revenue", value: fmtUSD(liveRev), sub: fmtFull(liveRev), accent:"var(--live)"},
+    {label:"Live Target", value: fmtUSD(liveTarget), sub: fmtFull(liveTarget), accent:"#8b96ac"},
+    {label:"Target Attainment", value: attain.toFixed(1)+"%", sub: attain>=100 ? "above target" : "below target", accent: attain>=100?"var(--good)":"var(--danger)", subClass: attain>=100?"good":"bad"},
+    {label:"Total Views", value: fmtNum(views), sub: liveF.length + " lives", accent:"#8b96ac"},
+    {label:"Lives in Period", value: liveF.length, sub: "recorded events", accent:"var(--live)"},
+    {label:"Avg Revenue / Live", value: liveF.length ? fmtUSD(liveRev/liveF.length) : "—", sub: "per event", accent:"var(--live)"},
   ];
   paintKPIs(cards);
 }
@@ -197,12 +197,12 @@ function renderAffKPIs(){
   const avgPartner = nPartners ? affRev/nPartners : 0;
 
   const cards = [
-    {label:"Receita Afiliados", value: fmtUSD(affRev), sub: fmtFull(affRev), accent:"var(--aff)"},
-    {label:"Receita média / mês", value: fmtUSD(avgMonth), sub: months.size + " meses no período", accent:"var(--aff)"},
-    {label:"Parceiros ativos", value: nPartners, sub: "com receita > 0", accent:"#8b96ac"},
-    {label:"Maior parceiro", value: top ? fmtUSD(top[1]) : "—", sub: top ? top[0] : "—", accent:"var(--aff)"},
-    {label:"Ticket médio / parceiro", value: fmtUSD(avgPartner), sub: "receita / parceiros ativos", accent:"#8b96ac"},
-    {label:"Meses com dados", value: months.size, sub: "no período filtrado", accent:"#8b96ac"},
+    {label:"Affiliate Revenue", value: fmtUSD(affRev), sub: fmtFull(affRev), accent:"var(--aff)"},
+    {label:"Avg Revenue / Month", value: fmtUSD(avgMonth), sub: months.size + " months in period", accent:"var(--aff)"},
+    {label:"Active Partners", value: nPartners, sub: "with revenue > 0", accent:"#8b96ac"},
+    {label:"Top Partner", value: top ? fmtUSD(top[1]) : "—", sub: top ? top[0] : "—", accent:"var(--aff)"},
+    {label:"Avg Ticket / Partner", value: fmtUSD(avgPartner), sub: "revenue / active partners", accent:"#8b96ac"},
+    {label:"Months with Data", value: months.size, sub: "in filtered period", accent:"#8b96ac"},
   ];
   paintKPIs(cards);
 }
@@ -409,7 +409,7 @@ function renderTopPartners(){
 
   const el = document.getElementById('topPartners');
   if(sorted.length === 0){
-    el.innerHTML = '<div class="empty-state">Sem dados para o período selecionado</div>';
+    el.innerHTML = '<div class="empty-state">No data for the selected period</div>';
     return;
   }
   el.innerHTML = sorted.map(([name,val],i) => `
@@ -446,7 +446,7 @@ function renderLiveTable(){
     return (av - bv) * tableSort.dir;
   });
 
-  document.getElementById('liveTableCount').textContent = `${liveF.length} lives no período filtrado`;
+  document.getElementById('liveTableCount').textContent = `${liveF.length} lives in filtered period`;
 
   document.querySelectorAll('#viewLive thead th').forEach(th => {
     th.classList.toggle('sorted', th.dataset.key === tableSort.key);
@@ -585,24 +585,24 @@ async function loadData(){
     LIVE_DATA = liveRows;
     AFF_DATA = affRows;
     const now = new Date();
-    setDataStatus('Ao vivo · atualizado às ' + now.toLocaleTimeString('pt-BR') + ' (' + LIVE_DATA.length + ' lives, ' + AFF_DATA.length + ' linhas de afiliados)', false);
+    setDataStatus('Live · updated at ' + now.toLocaleTimeString('en-US') + ' (' + LIVE_DATA.length + ' lives, ' + AFF_DATA.length + ' affiliate rows)', false);
   } catch (err) {
     console.error('Falha ao ler a planilha, usando snapshot local:', err);
     try {
       await loadFromJsonFallback();
-      setDataStatus('Offline · mostrando snapshot local (planilha indisponível)', true);
+      setDataStatus('Offline · showing local snapshot (spreadsheet unavailable)', true);
     } catch (err2) {
-      console.error('Falha também no snapshot local:', err2);
+      console.error('Local snapshot also failed:', err2);
       document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#e9edf6;font-family:sans-serif">' +
-        '<h2>Não foi possível carregar os dados.</h2>' +
-        '<p style="color:#8b96ac">Nem a planilha nem o snapshot local (data/live.json / data/affiliate.json) responderam. Detalhe: ' + err2.message + '</p></div>';
+        '<h2>Could not load the data.</h2>' +
+        '<p style="color:#8b96ac">Neither the spreadsheet nor the local snapshot (data/live.json / data/affiliate.json) responded. Detail: ' + err2.message + '</p></div>';
       throw err2;
     }
   }
 }
 
 document.getElementById('refreshBtn').addEventListener('click', async () => {
-  setDataStatus('Atualizando…', false);
+  setDataStatus('Updating…', false);
   await loadData();
   renderAll();
 });
