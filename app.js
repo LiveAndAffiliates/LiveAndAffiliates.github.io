@@ -16,7 +16,7 @@ const YEAR_COLORS = {"2025":"#5b6b8c", "2026": null}; // 2026 uses accent color 
 const state = {
   subs: new Set(SUBS),
   year: "all",
-  quarter: "all",
+  quarters: new Set(), // empty = Full Year (no quarter filter); otherwise one or more of Q1-Q4
   view: "live"
 };
 
@@ -97,15 +97,27 @@ function buildYearSeg(){
 function buildQuarterSeg(){
   const el = document.getElementById('quarterSeg');
   el.innerHTML = '';
-  const opts = [["all","Full Year"],["Q1","Q1"],["Q2","Q2"],["Q3","Q3"],["Q4","Q4"]];
-  opts.forEach(([val,label]) => {
+
+  const allBtn = document.createElement('button');
+  allBtn.textContent = 'Full Year';
+  if(state.quarters.size === 0) allBtn.classList.add('active');
+  allBtn.onclick = () => {
+    state.quarters.clear();
+    buildQuarterSeg();
+    renderAll();
+  };
+  el.appendChild(allBtn);
+
+  ["Q1","Q2","Q3","Q4"].forEach(q => {
     const b = document.createElement('button');
-    b.textContent = label;
-    if(val === state.quarter) b.classList.add('active');
+    b.textContent = q;
+    if(state.quarters.has(q)) b.classList.add('active');
     b.onclick = () => {
-      state.quarter = val;
-      [...el.children].forEach(c=>c.classList.remove('active'));
-      b.classList.add('active');
+      // Multi-select: toggle this quarter on/off without clearing the others.
+      // Selecting nothing is equivalent to Full Year (no quarter filter).
+      if(state.quarters.has(q)) state.quarters.delete(q);
+      else state.quarters.add(q);
+      buildQuarterSeg();
       renderAll();
     };
     el.appendChild(b);
@@ -115,7 +127,7 @@ function buildQuarterSeg(){
 document.getElementById('resetBtn').onclick = () => {
   state.subs = new Set(SUBS);
   state.year = 'all';
-  state.quarter = 'all';
+  state.quarters = new Set();
   buildSubPills();
   buildYearSeg();
   buildQuarterSeg();
@@ -127,14 +139,14 @@ function filterLive({respectQuarter=true, respectYear=true} = {}){
   return LIVE_DATA.filter(r =>
     state.subs.has(r.sub) &&
     (!respectYear || state.year === 'all' || String(r.year) === state.year) &&
-    (!respectQuarter || state.quarter === 'all' || r.quarter === state.quarter)
+    (!respectQuarter || state.quarters.size === 0 || state.quarters.has(r.quarter))
   );
 }
 function filterAff({respectQuarter=true, respectYear=true} = {}){
   return AFF_DATA.filter(r =>
     state.subs.has(r.sub) &&
     (!respectYear || state.year === 'all' || String(r.year) === state.year) &&
-    (!respectQuarter || state.quarter === 'all' || r.quarter === state.quarter)
+    (!respectQuarter || state.quarters.size === 0 || state.quarters.has(r.quarter))
   );
 }
 
@@ -223,20 +235,42 @@ function paintKPIs(cards){
   });
 }
 
-// ---------- Live: Monthly evolution (revenue vs target) ----------
+// ---------- Live: Monthly evolution (revenue by subsidiary, stacked, vs combined target) ----------
+const SUB_COLORS = {
+  SEM:"#2fe0c8", SELA:"#4f8dfd", SAMCOL:"#f5a623", SEASA:"#ef5da0",
+  SEPR:"#9b7bea", SECH:"#57d97a", SEDA:"#ff7b54"
+};
+
 function renderLiveMonthlyChart(){
   const liveAll = filterLive({respectQuarter:false});
   const keys = new Set(liveAll.map(r => monthYearKey(r.year, r.month)));
   const sortedKeys = [...keys].sort((a,b)=>a-b);
   const labels = sortedKeys.map(k => monthYearLabel(Math.floor(k/12), MONTH_ORDER[k%12]));
 
-  const revByKey = {}, targetByKey = {};
-  sortedKeys.forEach(k => { revByKey[k]=0; targetByKey[k]=0; });
+  // Only the currently-selected subsidiaries get a bar series, in a fixed
+  // order so a sub's color/position stays stable as filters change.
+  const activeSubs = SUBS.filter(s => state.subs.has(s));
+
+  const revBySubKey = {};
+  activeSubs.forEach(s => { revBySubKey[s] = {}; sortedKeys.forEach(k => revBySubKey[s][k] = 0); });
+  const targetByKey = {};
+  sortedKeys.forEach(k => targetByKey[k] = 0);
+
   liveAll.forEach(r => {
     const k = monthYearKey(r.year, r.month);
-    revByKey[k] += r.revenue;
+    if(revBySubKey[r.sub]) revBySubKey[r.sub][k] += r.revenue;
     targetByKey[k] += r.target;
   });
+
+  const subDatasets = activeSubs.map(s => ({
+    type:'bar',
+    label: s,
+    data: sortedKeys.map(k => revBySubKey[s][k]),
+    backgroundColor: SUB_COLORS[s] || '#8b96ac',
+    borderRadius: 2,
+    stack: 'revenue',
+    order: 2,
+  }));
 
   destroyChart('liveMonthly');
   const ctx = document.getElementById('liveMonthlyChart');
@@ -244,17 +278,20 @@ function renderLiveMonthlyChart(){
     data: {
       labels,
       datasets: [
-        {type:'bar', label:'Receita', data: sortedKeys.map(k=>revByKey[k]), backgroundColor:'#2fe0c8cc', borderRadius:4, order:2},
-        {type:'line', label:'Meta', data: sortedKeys.map(k=>targetByKey[k]), borderColor:'#8b96ac', borderDash:[4,3], pointRadius:0, borderWidth:1.5, tension:.3, order:1},
+        ...subDatasets,
+        {type:'line', label:'Target (combined)', data: sortedKeys.map(k=>targetByKey[k]), borderColor:'#e9edf6', borderDash:[4,3], pointRadius:0, borderWidth:1.5, tension:.3, order:1},
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index', intersect:false},
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(c)=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}} },
+      plugins:{
+        legend:{ display:true, position:'top', align:'start', labels:{boxWidth:10, boxHeight:10, padding:12, usePointStyle:false} },
+        tooltip:{callbacks:{label:(c)=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}}
+      },
       scales:{
-        x:{ grid:{display:false} },
-        y:{ grid:{color:'#161d2c'}, ticks:{callback:(v)=>fmtNum(v)} }
+        x:{ grid:{display:false}, stacked:true },
+        y:{ grid:{color:'#161d2c'}, ticks:{callback:(v)=>fmtNum(v)}, stacked:true }
       }
     }
   });
@@ -281,7 +318,7 @@ function renderAffMonthlyChart(){
     data: {
       labels,
       datasets: [
-        {label:'Receita', data: sortedKeys.map(k=>revByKey[k]), backgroundColor:'#f5a623cc', borderRadius:4},
+        {label:'Revenue', data: sortedKeys.map(k=>revByKey[k]), backgroundColor:'#f5a623cc', borderRadius:4},
       ]
     },
     options: {
@@ -307,8 +344,8 @@ function renderLiveTargetChart(){
     data:{
       labels,
       datasets:[
-        {label:'Receita', data: liveF.map(r=>r.revenue), backgroundColor:'#2fe0c8cc', borderRadius:4},
-        {label:'Meta', data: liveF.map(r=>r.target), backgroundColor:'#8b96ac55', borderRadius:4},
+        {label:'Revenue', data: liveF.map(r=>r.revenue), backgroundColor:'#2fe0c8cc', borderRadius:4},
+        {label:'Target', data: liveF.map(r=>r.target), backgroundColor:'#8b96ac55', borderRadius:4},
       ]
     },
     options:{
