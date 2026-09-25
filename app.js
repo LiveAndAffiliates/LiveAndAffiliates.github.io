@@ -297,36 +297,48 @@ function renderLiveMonthlyChart(){
   });
 }
 
-// ---------- Affiliate: Monthly evolution ----------
+// ---------- Affiliate: Monthly evolution (revenue by subsidiary, stacked) ----------
 function renderAffMonthlyChart(){
   const affAll = filterAff({respectQuarter:false});
   const keys = new Set(affAll.map(r => monthYearKey(r.year, r.month)));
   const sortedKeys = [...keys].sort((a,b)=>a-b);
   const labels = sortedKeys.map(k => monthYearLabel(Math.floor(k/12), MONTH_ORDER[k%12]));
 
-  const revByKey = {};
-  sortedKeys.forEach(k => { revByKey[k]=0; });
+  const activeSubs = SUBS.filter(s => state.subs.has(s));
+  const revBySubKey = {};
+  activeSubs.forEach(s => { revBySubKey[s] = {}; sortedKeys.forEach(k => revBySubKey[s][k] = 0); });
+
   affAll.forEach(r => {
     const k = monthYearKey(r.year, r.month);
-    revByKey[k] += r.revenue;
+    if(revBySubKey[r.sub]) revBySubKey[r.sub][k] += r.revenue;
   });
+
+  const subDatasets = activeSubs.map(s => ({
+    type:'bar',
+    label: s,
+    data: sortedKeys.map(k => revBySubKey[s][k]),
+    backgroundColor: SUB_COLORS[s] || '#8b96ac',
+    borderRadius: 2,
+    stack: 'revenue',
+  }));
 
   destroyChart('affMonthly');
   const ctx = document.getElementById('affMonthlyChart');
   charts['affMonthly'] = new Chart(ctx, {
-    type:'bar',
     data: {
       labels,
-      datasets: [
-        {label:'Revenue', data: sortedKeys.map(k=>revByKey[k]), backgroundColor:'#f5a623cc', borderRadius:4},
-      ]
+      datasets: subDatasets
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(c)=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}} },
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{ display:true, position:'top', align:'start', labels:{boxWidth:10, boxHeight:10, padding:12, usePointStyle:false} },
+        tooltip:{callbacks:{label:(c)=>` ${c.dataset.label}: ${fmtFull(c.parsed.y)}`}}
+      },
       scales:{
-        x:{ grid:{display:false} },
-        y:{ grid:{color:'#161d2c'}, ticks:{callback:(v)=>fmtNum(v)} }
+        x:{ grid:{display:false}, stacked:true },
+        y:{ grid:{color:'#161d2c'}, ticks:{callback:(v)=>fmtNum(v)}, stacked:true }
       }
     }
   });
