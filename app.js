@@ -575,6 +575,30 @@ function renderSubResultsTable(){
     </tr>`;
 }
 
+
+// ---------- Affiliates: Results by subsidiary (summary table) ----------
+function renderAffSubResultsTable(){
+  const affF = filterAff();
+  const rows = SUBS.filter(s => state.subs.has(s)).map(s => {
+    const rs = affF.filter(r => r.sub === s);
+    const partners = new Set(rs.filter(r => r.revenue > 0).map(r => r.partner));
+    return { sub: s, partners: partners.size, revenue: rs.reduce((a,r)=>a+r.revenue,0) };
+  });
+  const tot = rows.reduce((a,r)=>({partners:a.partners+r.partners, revenue:a.revenue+r.revenue}), {partners:0, revenue:0});
+  const fmtInt = (v) => Math.round(v).toLocaleString('en-US');
+  document.getElementById('affSubResultsBody').innerHTML = rows.map(r => `
+    <tr>
+      <td><strong>${r.sub}</strong></td>
+      <td style="text-align:right">${fmtInt(r.partners)}</td>
+      <td style="text-align:right">${fmtFull(r.revenue)}</td>
+    </tr>`).join('') + `
+    <tr style="font-weight:700;border-top:2px solid var(--border)">
+      <td>TOTAL</td>
+      <td style="text-align:right">${fmtInt(tot.partners)}</td>
+      <td style="text-align:right">${fmtFull(tot.revenue)}</td>
+    </tr>`;
+}
+
 function renderAll(){
   renderKPIs();
   if(state.view === 'live'){
@@ -586,6 +610,7 @@ function renderAll(){
     renderLiveTable();
   } else {
     renderAffMonthlyChart();
+    renderAffSubResultsTable();
     renderAffQuarterYearChart();
     renderTopPartners();
   }

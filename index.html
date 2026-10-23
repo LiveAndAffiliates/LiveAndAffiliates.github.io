@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live & Affiliates — Control Room</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=3">
 <!-- Optional: if this intranet has outbound internet access, uncomment below to load the
      intended display fonts (Space Grotesk / Inter / JetBrains Mono). Without it, the app
      falls back to system sans-serif/monospace fonts and still looks fine. -->
@@ -229,6 +229,27 @@
     <div class="chart-wrap tall"><canvas id="affMonthlyChart"></canvas></div>
   </div>
 
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Results by Subsidiary</div>
+        <div class="panel-note">Active partners and approved revenue per subsidiary, in the filtered period (year and quarter filters apply)</div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Subsidiary</th>
+            <th style="text-align:right">Active Partners</th>
+            <th style="text-align:right">Approved Revenue (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="affSubResultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="grid-2">
     <div class="panel">
       <div class="panel-header">
@@ -258,6 +279,6 @@
 </footer>
 
 
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
