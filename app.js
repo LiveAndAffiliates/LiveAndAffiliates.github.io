@@ -541,10 +541,45 @@ document.getElementById('liveSearch').addEventListener('input', (e) => {
 });
 
 // ---------- Master render ----------
+
+// ---------- Live: Results by subsidiary (summary table) ----------
+function renderSubResultsTable(){
+  const liveF = filterLive();
+  const rows = SUBS.filter(s => state.subs.has(s)).map(s => {
+    const rs = liveF.filter(r => r.sub === s);
+    return {
+      sub: s,
+      sessions: rs.length,
+      revenue: rs.reduce((a,r)=>a+r.revenue,0),
+      views: rs.reduce((a,r)=>a+r.views,0),
+    };
+  });
+  const tot = rows.reduce((a,r)=>({
+    sessions:a.sessions+r.sessions, revenue:a.revenue+r.revenue, views:a.views+r.views
+  }), {sessions:0, revenue:0, views:0});
+
+  const fmtInt = (v) => Math.round(v).toLocaleString('en-US');
+  const body = document.getElementById('subResultsBody');
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td><strong>${r.sub}</strong></td>
+      <td style="text-align:right">${fmtInt(r.sessions)}</td>
+      <td style="text-align:right">${fmtFull(r.revenue)}</td>
+      <td style="text-align:right">${fmtInt(r.views)}</td>
+    </tr>`).join('') + `
+    <tr style="font-weight:700;border-top:2px solid var(--border)">
+      <td>TOTAL</td>
+      <td style="text-align:right">${fmtInt(tot.sessions)}</td>
+      <td style="text-align:right">${fmtFull(tot.revenue)}</td>
+      <td style="text-align:right">${fmtInt(tot.views)}</td>
+    </tr>`;
+}
+
 function renderAll(){
   renderKPIs();
   if(state.view === 'live'){
     renderLiveMonthlyChart();
+    renderSubResultsTable();
     renderLiveTargetChart();
     renderLiveQuarterYearChart();
     renderWeeklyViewsChart();
